@@ -7,10 +7,16 @@ import {GoogleGenAI, createUserContent} from '@google/genai';
 import 'dotenv/config';
 import dotenv, { config } from 'dotenv';
 
+// Session 5: Import URL Package
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import fs from 'fs';
-import path from "path";
+
 import { constants } from "buffer";
 import { error } from "console";
+import { on } from "node:events";
+import { type } from "node:os";
 // Inisialisasi App
 // 
 // deklarasi variabel javascript
@@ -38,11 +44,18 @@ const PORT = 3000;
 
 const ai = new GoogleGenAI({}); //instantiation menjadi object instance(OOP)
 
-
+// SESSION 5 - Penambahan path
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// 
 // Inisialisasi middleware
 // contoh : app.use(nama middleware())
 app.use(cors()); //inisialisasi CORS sebagai middleware
 app.use(express.json());
+
+// Session 5 : Inisialisasi static directory
+app.use(express.static(path.join(__dirname, 'public')));
+
 
 // inisialisasi routing
 // consoth : app.get(), app.post(), app.pull(), dll -- Bagian dari standar HTTP
@@ -99,6 +112,87 @@ app.post('/generate-text', async (req, res) => {
         })
     }
 });
+
+// Fitur Chat
+// Endpoint : POST /api/chat
+app.post("/api/chat", async(req, res)=>{
+    const {conversation} = req.body;
+    try{
+        // Satpam 1: check conversationa pakah berupa array atau tidak
+        if(Array.isArray(conversation)) {
+            throw new Error("Conversation Harus Berupa Array!")
+        }
+
+        // Satpam 2: Cek setiap pesan dalam conversation apakah valid atau tidak
+        let messageIsValid = true;
+
+        if (conversation.length === 0) {
+            throw new Error ("Conversation tidak boleh kosong")
+        }
+
+        conversation.forEach(message => {
+
+
+
+            if(!message || typeof message !== 'object'){
+                messageIsValid = false;
+                return;
+            }
+
+            const keys = Object.keys(message);
+            const objectHasValidKeys = keys.every(key =>['text', 'role'].includes(key));
+
+            if(keys.length !==2 || !objectHasValidKeys){
+                messageIsValid = false;
+                return;
+            }
+
+            const {text, role}= message;
+
+            if(!['model', 'user'].includes(role)) {
+                messageIsValid = false;
+                return;
+            }
+
+            if(!text || typeof text !== 'string'){
+                messageIsValid = false;
+                return;
+            }
+
+
+        });
+
+        if(!messageIsValid) {
+            throw new Error ("Message harus valid!");
+        }
+
+        const contents = conversation.map(({role, text})=> ({
+            role,
+            parts:[{ text }]
+        }));
+
+        const aiResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents,
+            config: {
+                systemInstruction: "Harus membalas dengan menggunakan bahasa manado"
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Berhasil diterima oleh google gemini",
+            data: aiResponse.text
+        })
+
+    } catch(e){
+        res.status(500).json({
+            success: false,
+            message: e.message,
+            data: null
+        })
+    }
+})
 
 // upload.single(formDataYangDicari: string)
 // contoh : upoad.single('file) => yang dicari di FormData yang bernama 'file'
