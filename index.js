@@ -118,52 +118,45 @@ app.post('/generate-text', async (req, res) => {
 app.post("/api/chat", async(req, res)=>{
     const {conversation} = req.body;
     try{
-        // Satpam 1: check conversationa pakah berupa array atau tidak
-        if(Array.isArray(conversation)) {
-            throw new Error("Conversation Harus Berupa Array!")
+        // Validation 1: Check if conversation is a non-empty array.
+        if(!Array.isArray(conversation)) {
+            return res.status(400).json({
+                success: false,
+                message: "Conversation must be an array!",
+                data: null
+            });
         }
-
-        // Satpam 2: Cek setiap pesan dalam conversation apakah valid atau tidak
-        let messageIsValid = true;
 
         if (conversation.length === 0) {
-            throw new Error ("Conversation tidak boleh kosong")
+            return res.status(400).json({
+                success: false,
+                message: "Conversation cannot be empty!",
+                data: null
+            });
         }
 
-        conversation.forEach(message => {
-
-
-
+        // Validation 2: Check each message in the conversation for the correct format.
+        for (const message of conversation) {
             if(!message || typeof message !== 'object'){
-                messageIsValid = false;
-                return;
+                throw new Error("Invalid message format: message must be an object.");
             }
 
             const keys = Object.keys(message);
             const objectHasValidKeys = keys.every(key =>['text', 'role'].includes(key));
 
             if(keys.length !==2 || !objectHasValidKeys){
-                messageIsValid = false;
-                return;
+                throw new Error("Invalid message format: message must have 'text' and 'role' keys only.");
             }
 
             const {text, role}= message;
 
             if(!['model', 'user'].includes(role)) {
-                messageIsValid = false;
-                return;
+                throw new Error("Invalid role: role must be 'model' or 'user'.");
             }
 
             if(!text || typeof text !== 'string'){
-                messageIsValid = false;
-                return;
+                throw new Error("Invalid text: text must be a non-empty string.");
             }
-
-
-        });
-
-        if(!messageIsValid) {
-            throw new Error ("Message harus valid!");
         }
 
         const contents = conversation.map(({role, text})=> ({
@@ -186,7 +179,10 @@ app.post("/api/chat", async(req, res)=>{
         })
 
     } catch(e){
-        res.status(500).json({
+        // Use 400 for validation errors and 500 for other server errors.
+        const statusCode = e.message.startsWith("Invalid") ? 400 : 500;
+        console.error("Error in /api/chat:", e);
+        res.status(statusCode).json({
             success: false,
             message: e.message,
             data: null

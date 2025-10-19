@@ -11,3 +11,7 @@
             -role tidak berupa user atau model atau message tidak bertipe data string atau berisi string kosong('**' atau '""')
     - Lakukan mapping agar bisa dikirim ke Google Gemini API dengan function/method 'generativeContent()'
     - Message yang diterima oleh Google Gemini API nanti akan dikirimkan kembali ke user dengan format '{succerss: boolean, message:string, data : string}'        
+
+
+
+   
