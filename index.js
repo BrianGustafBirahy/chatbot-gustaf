@@ -54,7 +54,7 @@ app.use(cors()); //inisialisasi CORS sebagai middleware
 app.use(express.json());
 
 // Session 5 : Inisialisasi static directory
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'static')));
 
 
 // inisialisasi routing
